@@ -13,10 +13,13 @@ module Jekyll
 		end
 
 		# Pulls all records of a specific type
-		def pull_from(kind, base)
-			site = @context.registers[:site]
-			data = site.data[base]
-			records = data.select{|key, value| value['type'] == kind or value['type'] == kind.chop}.values # kind should be singular, this allows search to be plural or singular
+		def pull_type(base, type)
+
+			unless base.nil? || type.nil?
+				site = @context.registers[:site]
+				data = site.data[base]
+				records = data.select{|key, value| value['type'] == type or value['type'] == type.chop}.values # type should be singular, this allows search to be plural or singular
+			end
 		end
 
 		# Maps an array of record IDs into records
