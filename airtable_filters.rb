@@ -6,7 +6,7 @@ module Jekyll
 		# Pulls a record from a base
 		def record(id, base)
 			unless id.nil?
-				site = @context.registers[:site]
+				site = @context.present? ? @context.registers[:site] : @site
 				data = site.data[base]
 				resource = data[id]
 			end

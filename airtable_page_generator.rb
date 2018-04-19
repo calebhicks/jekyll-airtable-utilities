@@ -1,13 +1,16 @@
 # Airtable Page Generator
 # Generate pages from individual curriculum records in downloaded Airtable files
+require 'pry'
 
 module Jekyll
 
   class AirtableDataPage < Page
+    include Jekyll::AirtableFilters
+
     def initialize(site, base, dir, data, name, template, extension)
       @site = site
       @base = base
-      @dir = dir
+      @dir = format_dir(dir, data)
       @name = sanitize_filename(data[name]).to_s + "." + extension.to_s
 
       self.process(@name)
@@ -17,12 +20,40 @@ module Jekyll
 
     private
 
+    # This function is very, very fragile
+    def format_dir(dir, data)
+      token = dir[/{(.+)}/, 1]
+
+      unless token.nil? || data[token.split(".").first].nil?
+
+        key = dir[/{(.+)}/, 1].split(".").first
+        nested_key = dir[/{(.+)}/, 1].split(".").last  
+
+        # Linked Airtable records show up as Arrays
+        if data[key].kind_of?(Array) && data[key].count == 1
+          
+          # binding.pry
+
+          record = record(data[key].first, data["base"])
+          formatted_dir = dir.gsub("{#{token}}", record[nested_key].parameterize)
+
+          puts "    identified token #{token} in subdirectory, reformatted to #{formatted_dir}"
+          return formatted_dir
+        end
+
+        formatted_dir = dir.gsub("{#{token}}", data[token])
+        puts "    identified token #{token} in subdirectory, reformatted to #{formatted_dir}"
+        return formatted_dir
+      end
+      return dir
+    end
+
     # strip characters and whitespace to create valid filenames, also lowercase
     def sanitize_filename(name)
       if(name.is_a? Integer)
         return name.to_s
       end
-      return name.downcase.strip.gsub(' ', '-').gsub(/[^\w-]/, '')
+      return name.to_s.downcase.strip.gsub(' ', '-').gsub(/[^\w-]/, '')
     end
   end
 
@@ -41,7 +72,7 @@ module Jekyll
           name = data_spec['name']
           type = data_spec['type']
           template = data_spec['template'] || data_spec['table']
-          subdirectory = data_spec['subdirectory'] || data_spec['table']
+          subdirectory = data_spec['subdirectory']
           extension = data_spec['extension'] || "html"
           
           if site.layouts.key? template
