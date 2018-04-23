@@ -31,17 +31,15 @@ module Jekyll
 
         # Linked Airtable records show up as Arrays
         if data[key].kind_of?(Array) && data[key].count == 1
-          
           # binding.pry
-
           record = record(data[key].first, data["base"])
           formatted_dir = dir.gsub("{#{token}}", record[nested_key].parameterize)
-
           puts "    identified token #{token} in subdirectory, reformatted to #{formatted_dir}"
           return formatted_dir
         end
 
-        formatted_dir = dir.gsub("{#{token}}", data[token])
+        record = record(data[key].first, data["base"])
+        formatted_dir = dir.gsub("{#{token}}", record[nested_key].parameterize)
         puts "    identified token #{token} in subdirectory, reformatted to #{formatted_dir}"
         return formatted_dir
       end
