@@ -56,39 +56,68 @@ module Jekyll
   end
 
   class AirtableDataPagesGenerator < Generator
+
     safe true
 
     def generate(site)
       page_gen_data = site.config['airtable_pages']
 
       if page_gen_data
-        page_gen_data.each do |data_spec|
+        page_gen_data.each do |page_spec|
+          build_group(site, page_spec)
+        end
+      end
+    end
 
-          puts "Building pages for #{data_spec['type']} records"
+    def build_group(site, page_spec, parent_record = nil)
 
-          # todo: check input data correctness
-          name = data_spec['name']
-          type = data_spec['type']
-          template = data_spec['template'] || data_spec['table']
-          subdirectory = data_spec['subdirectory']
-          extension = data_spec['extension'] || "html"
-          
-          if site.layouts.key? template
-          	puts "pulling #{type} records"
+      log = parent_record.nil? ? "Building pages for #{page_spec['type']} records" : "... building child pages for #{parent_record[page_spec['name']]}'s '#{page_spec['key']}' children"
+      puts log
 
-            puts data_spec['table']
+      table = page_spec['table']
+      name = page_spec['name']
+      type = page_spec['type']
+      template = page_spec['template'] || page_spec['table']
+      subdirectory = page_spec['subdirectory']
+      extension = page_spec['extension'] || "html"
+      
+      if site.layouts.key? template
+        puts "pulling #{type} records from #{page_spec['table']}"
+        
+        records = parent_record.nil? ? site.data[page_spec['table'].parameterize].select{|key, value| value['type'] == type}.values : parent_record[page_spec['key']].nil? ? Array.new : parent_record[page_spec['key']].map {|id| site.data[page_spec['table'].parameterize][id]}
+        
+        puts "#{records.length} records pulled"
+        records.each do |record|
+          site.pages << AirtableDataPage.new(site, site.source, subdirectory, record, name, template, extension)
+          puts "... built for #{record[name]}"
 
-      			records = site.data[data_spec['table'].parameterize].select{|key, value| value['type'] == type}.values # kind should be singular, this allows search to be plural or singular
-      			puts "#{records.length} records pulled"
-            records.each do |record|
-              site.pages << AirtableDataPage.new(site, site.source, subdirectory, record, name, template, extension)
-              puts "... built for #{record[name]}"
+          if page_spec['children']
+            page_spec['children'].each do |child_spec|
+
+              # puts "should build child pages with spec: #{child_spec}"
+
+              child_spec['parent_spec'] = page_spec
+              child_spec['table'] = page_spec['table']
+              child_spec['type'] = child_spec['key'] # maybe don't include this, may fetch all of this type, or maybe that's a good thing and you take intersection of record ids
+              # child_spec['subdirectory'] = parent_record.nil? ? page_spec['subdirectory'] + "/#{child_spec['subdirectory']}" : page_spec['subdirectory'] + "/#{parent_record[name].parameterize}" + "/#{child_spec['subdirectory']}"
+              # child_spec['subdirectory'] = parent_record.nil? ? "#{page_spec['subdirectory']}/#{child_spec['subdirectory']}" : "#{page_spec['subdirectory']}/#{parent_record[name].parameterize}/#{child_spec['subdirectory']}"
+              # child_spec['subdirectory'] = "#{page_spec['subdirectory'}/#{child_spec['subdirectory']}"
+
+              subdirectory = parent_record.nil? ? page_spec['subdirectory'] : "#{page_spec['subdirectory']}/#{parent_record[page_spec['parent_spec']['name']]}"
+              puts subdirectory
+
+              child_spec['subdirectory'] = subdirectory
+
+              # /{course_short_id}/{curriculum_set_short_id}/sprint/{sprint_id}/modules/{module_id}
+              # /ios/ios-pre/sprint/{sprint_id}
+              # /ios/ios-pre/module/{module_id}
+
+              build_group(site, child_spec, record)
             end
-          else
-            # puts "error. could not find data for #{type}" if not File.exists?(data_file)
-            puts "error. could not find template #{template}" if not site.layouts.key? template
           end
         end
+      else
+        puts "error. could not find template #{template}" if not site.layouts.key? template
       end
     end
   end
