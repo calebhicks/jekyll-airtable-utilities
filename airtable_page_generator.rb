@@ -48,9 +48,6 @@ module Jekyll
 
     # strip characters and whitespace to create valid filenames, also lowercase
     def sanitize_filename(name)
-      if(name.is_a? Integer)
-        return name.to_s
-      end
       return name.to_s.downcase.strip.gsub(' ', '-').gsub(/[^\w-]/, '')
     end
   end
