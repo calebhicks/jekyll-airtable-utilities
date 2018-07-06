@@ -7,15 +7,16 @@ module Jekyll
   class AirtableDataPage < Page
     include Jekyll::AirtableFilters
 
-    def initialize(site, base, dir, data, name, template, extension)
+    def initialize(site, base, dir, data, slug, name, template, extension)
       @site = site
       @base = base
       @dir = format_dir(dir, data)
-      @name = sanitize_filename(data[name]).to_s + "." + extension.to_s
+      @name = sanitize_filename(data[slug]).to_s + "." + extension.to_s
 
       self.process(@name)
       self.read_yaml(File.join(base, '_layouts'), template + ".html")
       self.data['context'] = data
+      self.data['title'] = data[name]
     end
 
     private
@@ -72,7 +73,8 @@ module Jekyll
       puts log
 
       table = page_spec['table']
-      name = page_spec['name']
+      slug = page_spec['slug']
+      title = page_spec['title']
       type = page_spec['type']
       template = page_spec['template'] || page_spec['table']
       subdirectory = page_spec['subdirectory']
@@ -85,8 +87,8 @@ module Jekyll
         
         puts "#{records.length} records pulled"
         records.each do |record|
-          site.pages << AirtableDataPage.new(site, site.source, subdirectory, record, name, template, extension)
-          puts "... built for #{record[name]}"
+          site.pages << AirtableDataPage.new(site, site.source, subdirectory, record, slug, title, template, extension)
+          puts "... built for #{record[title]}"
 
           if page_spec['children']
             page_spec['children'].each do |child_spec|
