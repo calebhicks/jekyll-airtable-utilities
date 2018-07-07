@@ -5,7 +5,6 @@ require 'pry'
 module Jekyll
 
   class AirtableDataPage < Page
-    include Jekyll::AirtableFilters
 
     def initialize(site, base, dir, data, slug, name, template, extension)
       @site = site
@@ -20,6 +19,14 @@ module Jekyll
     end
 
     private
+
+		def record(id, base)
+			unless id.nil?
+				site = @context.present? ? @context.registers[:site] : @site
+				data = site.data[base]
+				resource = data[id]
+			end
+		end
 
     # This function is very, very fragile
     def format_dir(dir, data)

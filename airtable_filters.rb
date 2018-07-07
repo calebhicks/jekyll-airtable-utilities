@@ -2,7 +2,7 @@
 
 module Jekyll
 	module AirtableFilters
-
+		
 		# Pulls a record from a base
 		def record(id, base)
 			unless id.nil?
